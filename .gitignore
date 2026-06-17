@@ -1,0 +1,18 @@
+# Pipeline run artifacts (per-account working dirs)
+.gtm/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Local env / secrets — never commit keys
+.env
+.env.*
+*.key
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/

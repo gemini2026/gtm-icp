@@ -1,0 +1,21 @@
+{
+  "name": "Example ICP — vertical SaaS buyers",
+  "description": "Edit these to match your ICP. Weights are relative; the scorer normalizes them. Each criterion is judged true/false by the classify skill, grounded on your corpus.",
+  "criteria": [
+    {
+      "key": "vertical_match",
+      "weight": 0.4,
+      "description": "Operates in a target vertical (e.g. industrial automation, vertical SaaS, logistics)."
+    },
+    {
+      "key": "size_fit",
+      "weight": 0.3,
+      "description": "Headcount roughly 100-2000 — past the early-stage chaos, not yet locked into an incumbent suite."
+    },
+    {
+      "key": "ai_posture",
+      "weight": 0.3,
+      "description": "Shows active investment in AI/automation (hiring, product launches, public statements)."
+    }
+  ]
+}

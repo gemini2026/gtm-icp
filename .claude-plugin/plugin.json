@@ -1,0 +1,47 @@
+{
+  "name": "gtm-icp",
+  "version": "0.1.0",
+  "description": "GTM-as-code: a backend-free Claude plugin that discovers, enriches, classifies, scores, and personalizes B2B accounts against an ICP — grounded on your own knowledge corpus. Bring your own data-vendor keys; no markup, no hosted backend.",
+  "author": {
+    "name": "knowledge2-icp"
+  },
+  "license": "MIT",
+  "keywords": [
+    "gtm",
+    "icp",
+    "sales-intelligence",
+    "lead-enrichment",
+    "rag",
+    "gtm-as-code"
+  ],
+  "userConfig": {
+    "apollo_api_key": {
+      "type": "string",
+      "title": "Apollo API key",
+      "description": "Apollo.io API key used by the enrich skill for firmographic + contact enrichment (sync REST). Leave blank to run enrich in --local mode (firmographic-only, no paid vendor).",
+      "sensitive": true,
+      "required": false
+    },
+    "perplexity_api_key": {
+      "type": "string",
+      "title": "Perplexity API key",
+      "description": "Perplexity API key for the discover skill's internet-grounded account research. Leave blank to disable discovery; you can still enrich/classify accounts you supply directly.",
+      "sensitive": true,
+      "required": false
+    },
+    "k2_api_host": {
+      "type": "string",
+      "title": "K2 API host",
+      "description": "Base URL of a Knowledge2 corpus API (e.g. https://api.knowledge2.ai). When set, classify/personalize ground their reasoning on your private corpus via the bundled stdio MCP shim. Leave blank to ground on local corpus files instead.",
+      "sensitive": false,
+      "required": false
+    },
+    "k2_api_key": {
+      "type": "string",
+      "title": "K2 API key",
+      "description": "K2 API key sent to the K2 API host as `x-api-key`. Required when k2_api_host is set.",
+      "sensitive": true,
+      "required": false
+    }
+  }
+}
