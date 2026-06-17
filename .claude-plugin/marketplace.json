@@ -1,0 +1,17 @@
+{
+  "name": "gtm-icp-marketplace",
+  "owner": {
+    "name": "knowledge2-icp"
+  },
+  "metadata": {
+    "description": "Marketplace for the gtm-icp plugin — a backend-free ICP qualification pipeline for Claude Code.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "gtm-icp",
+      "source": ".",
+      "description": "GTM-as-code: backend-free ICP pipeline (enrich -> classify -> score) as a Claude plugin, grounded on your own corpus, bring your own keys."
+    }
+  ]
+}
