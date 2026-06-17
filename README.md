@@ -26,21 +26,26 @@ for and score accounts with a generic prompt. `gtm-icp` flips both:
 
 | Stage | Status | What it does |
 |-------|--------|--------------|
-| `discover` | planned | Internet-grounded account discovery (Perplexity). |
+| **`discover`** | **implemented** | Find ICP-fit companies from a brief — Perplexity-grounded, with no-key DuckDuckGo + seed-list fallbacks. |
 | **`enrich`** | **implemented** | Firmographic enrichment — Apollo-first, no-key local fallback. |
 | **`classify`** | **implemented** | Corpus-grounded ICP verdict + deterministic 0-100 score & A/B/C tier. |
-| `persist` | planned | Write qualified accounts to a store / CRM. |
-| `personalize` | planned | Corpus-grounded outreach drafting (with a human approval gate). |
+| `people` | next | Apollo people search — find the right contacts in each qualified account. |
+| `list` | planned | Ranked CSV + per-account markdown dossier for GTM hand-off. |
 
 ## Quickstart (no keys)
 
 Requires Python 3.10+. From the repo root:
 
 ```bash
-# 1. Enrich the example account (local, no paid key)
-python3 skills/enrich/scripts/enrich.py --input examples/acme.json --local
+# 1. Discover companies from a seed list (deterministic, no key) — or use
+#    --brief "<ICP description>" once PERPLEXITY_API_KEY is set.
+printf 'Acme Robotics, acme.example\n' > /tmp/seeds.csv
+python3 skills/discover/scripts/discover.py --seeds /tmp/seeds.csv
 
-# 2. Classify is the LLM step — in Claude, run /gtm-icp:classify acme-robotics
+# 2. Enrich a discovered (or supplied) account (local, no paid key)
+python3 skills/enrich/scripts/enrich.py --slug acme-example --local
+
+# 3. Classify is the LLM step — in Claude, run /gtm-icp:classify acme-robotics
 #    Claude reads enrich.json + icp.criteria.json, grounds on corpus/, and
 #    writes .gtm/acme-robotics/classify.json. Then score it:
 python3 skills/classify/scripts/score.py --slug acme-robotics
@@ -53,9 +58,10 @@ Artifacts land in `.gtm/<slug>/` (git-ignored). See
 
 Installed as a plugin, the stages are slash commands:
 
+- `/gtm-icp:discover <ICP brief | --seeds path>` — find ICP-fit companies
 - `/gtm-icp:enrich <company | domain | account.json>`
 - `/gtm-icp:classify <slug>`
-- `/gtm-icp:pipeline <company | accounts.json>` — runs the slice end to end
+- `/gtm-icp:pipeline <ICP brief | company | accounts.json>` — runs discover→enrich→classify→score end to end
 
 Configure keys via the plugin's `userConfig` (`apollo_api_key`,
 `perplexity_api_key`, `k2_api_host` / `k2_api_key`) — all optional; absent keys

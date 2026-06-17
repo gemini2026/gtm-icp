@@ -5,23 +5,25 @@ argument-hint: "[company | domain | path to accounts.json]"
 
 # Pipeline (orchestrator)
 
-Run the account(s) through the ICP pipeline stages in order. The implemented
-vertical slice is **enrich -> classify -> score**; later stages (discover,
-persist, personalize) are stubbed and skipped until built.
+Run the account(s) through the ICP pipeline stages in order. Implemented today:
+**discover -> enrich -> classify -> score**; later stages (people, list) are
+being built incrementally.
 
 ## Invocation
 
-`/gtm-icp:pipeline [company | domain | accounts.json]`
+`/gtm-icp:pipeline [ICP brief | company | domain | accounts.json]`
 
 ## Behavior
 
-For each account in the input:
-
-1. Ensure `.gtm/<slug>/input.json` exists (write it from the supplied record).
-2. Execute the `enrich` skill (read `skills/enrich/SKILL.md`).
+1. If the input is an **ICP brief** (not a specific account), execute the
+   `discover` skill (read `skills/discover/SKILL.md`) to find candidate
+   companies — each written to `.gtm/<slug>/input.json`. If the input is a
+   specific account or accounts file, write the record(s) to `input.json`
+   directly and skip discover.
+2. For each account slug, execute the `enrich` skill (read `skills/enrich/SKILL.md`).
 3. Execute the `classify` skill (read `skills/classify/SKILL.md`), which also
    runs the deterministic scorer.
-4. Report the per-account tier + score + driving evidence.
+4. Report the per-account tier + score + driving evidence, ranked.
 
 Honor the interaction mode in `skills/_shared/interaction-modes.md`: in
 `interactive` pause to confirm the ICP criteria before classifying; in
