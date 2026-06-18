@@ -12,19 +12,29 @@ import importlib.util, sys
 spec = importlib.util.spec_from_file_location("signals", sys.argv[1])
 signals = importlib.util.module_from_spec(spec); spec.loader.exec_module(signals)
 
+# The careers page embeds a real Greenhouse board link with a slug we could NOT
+# guess from the name ("incumbent" -> board token "incumbent-hq").
 PAGES = {
     "https://incumbent.example/": "<html><body>Fleet dispatch and work order software with an open API.</body></html>",
+    "https://incumbent.example/careers": '<html><body>Join us — <a href="https://boards.greenhouse.io/incumbenthq">see open roles</a>.</body></html>',
 }
 def fake_fetch(url):
-    return (signals._html_to_text(PAGES[url]) if url in PAGES else None,
-            None if url in PAGES else f"fetch failed {url}")
+    if url not in PAGES:
+        return (None, [], f"fetch failed {url}")
+    html = PAGES[url]
+    return (signals._html_to_text(html), signals._extract_ats_refs(html), None)
 def fake_gh(company, domain):
     return {"status": "ok", "repositories": [
         {"name": "incumbent/sdk", "description": "Java client for our dispatch API", "language": "Java", "stars": 3}]}
-# Hiring signal now comes from a public ATS board posting, not a scraped careers page.
-def fake_boards(company, domain):
-    return {"status": "ok", "provider": "greenhouse", "board_slug": "incumbent", "postings": [
-        {"title": "Senior Machine Learning Engineer", "url": "https://boards.greenhouse.io/incumbent/jobs/1",
+# Hiring signal comes from a public ATS board posting. The board is only reachable
+# via the slug discovered on the careers page, so assert `discovered` is honored.
+def fake_boards(company, domain, *, discovered=None):
+    refs = discovered or []
+    assert any(r["provider"] == "greenhouse" and r["slug"] == "incumbenthq" for r in refs), \
+        f"careers-page slug should reach hiring_boards, got {refs}"
+    return {"status": "ok", "provider": "greenhouse", "board_slug": "incumbenthq",
+            "discovery": "careers-link", "postings": [
+        {"title": "Senior Machine Learning Engineer", "url": "https://boards.greenhouse.io/incumbenthq/jobs/1",
          "text": "Senior Machine Learning Engineer — build our LLM features with LangChain and a vector database."}]}
 
 ICP_SIGNALS = [
@@ -49,9 +59,19 @@ assert "machine learning engineer" in ai["matched_keywords"], ai["matched_keywor
 assert any(e["source"].startswith("hiring:greenhouse:") for e in ai["evidence"]), \
     "evidence should cite the ATS job posting"
 
-# The hiring board provider/slug are surfaced for the GTM rep.
+# The hiring board provider/slug are surfaced for the GTM rep, with provenance.
 assert out["hiring_boards"]["provider"] == "greenhouse", out["hiring_boards"]
+assert out["hiring_boards"]["board_slug"] == "incumbenthq", out["hiring_boards"]
+assert out["hiring_boards"]["discovery"] == "careers-link", out["hiring_boards"]
 assert out["hiring_boards"]["postings"][0]["url"].startswith("https://boards.greenhouse.io/"), out["hiring_boards"]
+
+# ATS-link extraction handles the embed form and rejects the stop-word slug.
+refs = signals._extract_ats_refs(
+    '<a href="https://boards.greenhouse.io/embed/job_board?for=acmeco">x</a>'
+    '<a href="https://jobs.lever.co/acme-eng">y</a>')
+assert {"provider": "greenhouse", "slug": "acmeco"} in refs, refs
+assert {"provider": "lever", "slug": "acme-eng"} in refs, refs
+assert all(r["slug"] not in signals._ATS_SLUG_STOP for r in refs), refs
 
 # ai_product_surface keywords are absent -> found is False (absence is evidence).
 assert by["ai_product_surface"]["found"] is False, "ai_product_surface should not fire"

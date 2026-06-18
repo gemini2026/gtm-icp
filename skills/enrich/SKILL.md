@@ -54,10 +54,16 @@ you the account conversationally — see `_shared/artifact-structure.md`).
    This fetches the homepage, careers pages, **public ATS job boards
    (Greenhouse / Lever / Ashby)**, and GitHub repos, then scans them for the
    keyword groups the ICP declares under `signals` — each group names the
-   scoring `dimension` it informs. The ATS boards are public JSON APIs keyed by
-   a guessed company slug; they give structured per-posting text (where hiring
-   signals actually live) and are surfaced in `signals.json` under
-   `hiring_boards` (provider + slug + posting titles/URLs) for the GTM rep. It writes `.gtm/<slug>/signals.json`
+   scoring `dimension` it informs. The ATS boards are public JSON APIs; the
+   script first looks for a board link (`boards.greenhouse.io/<slug>`,
+   `jobs.lever.co/<slug>`, `jobs.ashbyhq.com/<slug>`) embedded in the company's
+   own careers HTML — that's the *real* slug, so it resolves boards a name-based
+   guess can't (e.g. Sourcegraph's board is `sourcegraph91`). It falls back to
+   guessing the slug from the name/domain when no link is in the HTML (JS-only
+   careers pages won't expose one). Boards give structured per-posting text
+   (where hiring signals actually live) and are surfaced in `signals.json` under
+   `hiring_boards` (provider + slug + `discovery` provenance + posting
+   titles/URLs) for the GTM rep. It writes `.gtm/<slug>/signals.json`
    with, per group, the `matched_keywords`, the `evidence` (source URL + snippet),
    and a `found` flag. Example: an ICP `ai_hiring` group (`langchain`, `llm`, …)
    that `informs` `commercial_urgency` will fire on a careers page hiring LangChain

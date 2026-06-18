@@ -83,17 +83,48 @@ def _html_to_text(html: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def http_get_text(url: str, timeout: float = 8.0) -> tuple[str | None, str | None]:
-    """Return (text, error). Never raises; SSRF-guarded."""
+# ATS board links embedded in careers/homepage HTML — the reliable way to learn
+# a company's *real* board slug instead of guessing it from the name.
+_ATS_REF_PATTERNS = [
+    ("greenhouse", re.compile(r"(?:job-)?boards\.greenhouse\.io/(?:embed/job_board\?for=)?([a-z0-9_-]+)", re.I)),
+    ("greenhouse", re.compile(r"boards-api\.greenhouse\.io/v1/boards/([a-z0-9_-]+)", re.I)),
+    ("lever", re.compile(r"jobs\.lever\.co/([a-z0-9_-]+)", re.I)),
+    ("lever", re.compile(r"api\.lever\.co/v0/postings/([a-z0-9_-]+)", re.I)),
+    ("ashby", re.compile(r"jobs\.ashbyhq\.com/([a-z0-9_-]+)", re.I)),
+    ("ashby", re.compile(r"api\.ashbyhq\.com/posting-api/job-board/([a-z0-9_-]+)", re.I)),
+]
+_ATS_SLUG_STOP = {"embed", "job_board", "for", "v0", "v1", "boards", "postings", "job-board"}
+
+
+def _extract_ats_refs(html: str) -> list[dict]:
+    """Find embedded ATS board links in raw HTML -> [{provider, slug}, ...]."""
+    refs, seen = [], set()
+    for provider, pat in _ATS_REF_PATTERNS:
+        for slug in pat.findall(html or ""):
+            slug = slug.strip().lower()
+            key = (provider, slug)
+            if slug and slug not in _ATS_SLUG_STOP and key not in seen:
+                seen.add(key)
+                refs.append({"provider": provider, "slug": slug})
+    return refs
+
+
+def http_get_text(url: str, timeout: float = 8.0) -> tuple[str | None, list[dict], str | None]:
+    """Return (text, ats_refs, error). Never raises; SSRF-guarded.
+
+    ats_refs are ATS board links found in the raw HTML before tag-stripping, so
+    we keep them out of the keyword-scanned text (a URL containing "api" must not
+    fire the workflow signal) while still learning the company's real board slug.
+    """
     if not _is_public_url(url):
-        return None, f"skipped non-public url: {url}"
+        return None, [], f"skipped non-public url: {url}"
     req = Request(url, headers={"User-Agent": USER_AGENT, "Accept": "text/html,*/*"})
     try:
         with urlopen(req, timeout=timeout) as resp:
             raw = resp.read(2_000_000).decode("utf-8", errors="replace")
     except (HTTPError, URLError, TimeoutError, ValueError) as exc:
-        return None, f"fetch failed {url}: {exc}"
-    return _html_to_text(raw), None
+        return None, [], f"fetch failed {url}: {exc}"
+    return _html_to_text(raw), _extract_ats_refs(raw), None
 
 
 def github_repos(company: str, domain: str, timeout: float = 8.0) -> dict:
@@ -183,13 +214,36 @@ ATS_BOARDS = [
 ]
 
 
-def hiring_boards(company: str, domain: str, *, fetcher=http_get_json) -> dict:
+def hiring_boards(company: str, domain: str, *, fetcher=http_get_json,
+                  discovered: list[dict] | None = None) -> dict:
     """Find the account's public ATS board and return its job postings.
 
-    Tries Greenhouse/Lever/Ashby by guessed slug. A company uses one ATS, so we
-    stop at the first board that returns postings. A 404 on a wrong slug is
-    expected and silent. Never raises.
+    Two strategies, precise first:
+      1. `discovered` — (provider, slug) pairs scraped from ATS links embedded in
+         the company's own careers/homepage HTML. This is the *real* board slug,
+         so it closes the gap where a slug can't be guessed from the name (e.g.
+         "samsara" → board token "samsara-careers").
+      2. Fall back to guessing slugs from the company name and domain.
+
+    A company uses one ATS, so we stop at the first board that returns postings.
+    A 404 on a wrong slug is expected and silent. Never raises.
     """
+    templates = {provider: (template, parse) for provider, template, parse in ATS_BOARDS}
+
+    for ref in (discovered or []):
+        tp = templates.get(ref.get("provider"))
+        slug = ref.get("slug")
+        if not tp or not slug:
+            continue
+        template, parse = tp
+        data, err = fetcher(template.format(slug=slug))
+        if err:
+            continue
+        postings = parse(data)
+        if postings:
+            return {"status": "ok", "provider": ref["provider"], "board_slug": slug,
+                    "postings": postings[:25], "discovery": "careers-link"}
+
     slugs = _board_slugs(company, domain)
     for provider, template, parse in ATS_BOARDS:
         for slug in slugs:
@@ -199,7 +253,7 @@ def hiring_boards(company: str, domain: str, *, fetcher=http_get_json) -> dict:
             postings = parse(data)
             if postings:
                 return {"status": "ok", "provider": provider, "board_slug": slug,
-                        "postings": postings[:25]}
+                        "postings": postings[:25], "discovery": "slug-guess"}
     return {"status": "not_found", "provider": None, "board_slug": None, "postings": [],
             "note": "no public Greenhouse/Lever/Ashby board matched slugs: " + ", ".join(slugs)}
 
@@ -225,9 +279,9 @@ def gather_signals(account: dict, signal_groups: list[dict], *,
                    fetcher=http_get_text, gh=github_repos, boards=hiring_boards) -> dict:
     """Fetch public sources for the account and detect ICP signal keywords.
 
-    `fetcher(url) -> (text, error)`, `gh(company, domain) -> {...}`, and
-    `boards(company, domain) -> {...}` are injectable so this runs fully offline
-    under test.
+    `fetcher(url) -> (text, ats_refs, error)`, `gh(company, domain) -> {...}`, and
+    `boards(company, domain, discovered=...) -> {...}` are injectable so this runs
+    fully offline under test.
     """
     company = account.get("company_name") or account.get("company") or ""
     domain = (account.get("domain") or account.get("website") or "").replace(
@@ -243,13 +297,19 @@ def gather_signals(account: dict, signal_groups: list[dict], *,
         val = account.get(key)
         urls += val if isinstance(val, list) else ([val] if isinstance(val, str) else [])
     seen, source_texts = set(), []
+    discovered_refs, seen_refs = [], set()
     for url in urls:
         if not url or url in seen:
             continue
         seen.add(url)
-        text, err = fetcher(url)
+        text, refs, err = fetcher(url)
         if err:
             warnings.append(err)
+        for ref in refs or []:
+            rk = (ref.get("provider"), ref.get("slug"))
+            if rk not in seen_refs:
+                seen_refs.add(rk)
+                discovered_refs.append(ref)
         if text:
             source_texts.append((url, text))
 
@@ -261,8 +321,11 @@ def gather_signals(account: dict, signal_groups: list[dict], *,
         blob = f"{repo.get('name','')} {repo.get('description','')} {repo.get('language','')}"
         source_texts.append((f"github:{repo.get('name') or 'repo'}", blob))
 
-    # 2c. Public ATS job board -> one rich text source per posting.
-    boards_result = boards(company, domain) if (company or domain) else {"status": "skipped", "postings": []}
+    # 2c. Public ATS job board -> one rich text source per posting. Prefer a
+    #     board slug discovered from links on the company's own careers pages.
+    boards_result = (boards(company, domain, discovered=discovered_refs)
+                     if (company or domain or discovered_refs)
+                     else {"status": "skipped", "postings": []})
     if boards_result.get("note"):
         warnings.append(boards_result["note"])
     provider = boards_result.get("provider")
@@ -297,6 +360,7 @@ def gather_signals(account: dict, signal_groups: list[dict], *,
             "status": boards_result.get("status"),
             "provider": provider,
             "board_slug": boards_result.get("board_slug"),
+            "discovery": boards_result.get("discovery"),
             "postings": [{"title": p.get("title"), "url": p.get("url")}
                          for p in boards_result.get("postings", [])],
         },
