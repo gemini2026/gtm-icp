@@ -2,9 +2,9 @@
 
 **GTM-as-code: a backend-free Claude plugin that finds B2B accounts matching your ICP, then enriches, classifies and scores them into a prioritized target list for outreach — grounded on your own corpus, bring your own keys.**
 
-> Working name. The pipeline runs end to end through contact resolution
-> (`discover → enrich (+ signals) → classify → score → people`); the final
-> GTM hand-off `list` stage is next.
+> Working name. The pipeline runs end to end —
+> `discover → enrich (+ signals) → classify → score → people → list` — from an
+> ICP brief to a ranked, evidence-backed target list with contacts.
 
 Most ICP/lead-scoring tools are hosted SaaS that mark up data you already pay
 for and score accounts with a generic prompt. `gtm-icp` flips both:
@@ -30,7 +30,7 @@ for and score accounts with a generic prompt. `gtm-icp` flips both:
 | **`enrich`** | **implemented** | Firmographics (Apollo-first, no-key fallback) **+ deep intent signals** from website, public ATS job boards (Greenhouse/Lever/Ashby), and GitHub — mapped to ICP scoring dimensions. |
 | **`classify`** | **implemented** | Corpus-grounded ICP verdict — hard gates + graded dimensions → deterministic 0-100 score & A/B/Nurture/Reject tier. |
 | **`people`** | **implemented** | Apollo people search — map the ICP's buying personas to real contacts per qualified account; no-key persona-target fallback. |
-| `list` | next | Ranked CSV + per-account markdown dossier for GTM hand-off. |
+| **`list`** | **implemented** | Aggregate every scored account into a ranked CSV + per-account markdown dossier (gates, signals, contacts) for GTM hand-off. |
 
 ## Quickstart (no keys)
 
@@ -58,10 +58,14 @@ python3 skills/classify/scripts/score.py --slug acme-robotics
 # 4. Find contacts in a qualified account (no key -> persona targets; with
 #    APOLLO_API_KEY -> real contacts mapped to the ICP's personas).
 python3 skills/people/scripts/people.py --slug acme-robotics
+
+# 5. Build the hand-off list across every scored account ->
+#    .gtm/_report/accounts.csv + .gtm/_report/dossier.md
+python3 skills/list/scripts/build_list.py
 ```
 
-Artifacts land in `.gtm/<slug>/` (git-ignored). See
-`skills/_shared/artifact-structure.md`.
+Per-account artifacts land in `.gtm/<slug>/`; the hand-off CSV + dossier land in
+`.gtm/_report/` (all git-ignored). See `skills/_shared/artifact-structure.md`.
 
 ## As a Claude plugin
 
@@ -71,7 +75,8 @@ Installed as a plugin, the stages are slash commands:
 - `/gtm-icp:enrich <company | domain | account.json>`
 - `/gtm-icp:classify <slug>`
 - `/gtm-icp:people <slug>` — find contacts in a qualified account
-- `/gtm-icp:pipeline <ICP brief | company | accounts.json>` — runs discover→enrich→classify→score end to end
+- `/gtm-icp:list [--include-reject]` — build the ranked CSV + dossier hand-off
+- `/gtm-icp:pipeline <ICP brief | company | accounts.json>` — runs discover→enrich→classify→score→people→list end to end
 
 Configure keys via the plugin's `userConfig` (`apollo_api_key`,
 `perplexity_api_key`, `k2_api_host` / `k2_api_key`) — all optional; absent keys
@@ -102,6 +107,7 @@ bash skills/enrich/scripts/tests/test_signals.sh
 bash skills/classify/scripts/tests/test_score.sh
 bash skills/discover/scripts/tests/test_discover.sh
 bash skills/people/scripts/tests/test_people.sh
+bash skills/list/scripts/tests/test_list.sh
 ```
 
 ## Design notes

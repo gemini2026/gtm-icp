@@ -14,7 +14,15 @@ workers never contend.
     score.json        # normalized score + tier         (score, run by classify)
     people.json       # contacts / persona targets      (people stage)
     state.md          # per-account stage status        (see state-tracking.md)
+
+.gtm/_report/             # aggregated hand-off, written by the list stage
+    accounts.csv          # ranked, one row per account
+    dossier.md            # per-account evidence dossier
 ```
+
+The `list` stage aggregates *across* account dirs, so its output lives in a
+shared `_report/` directory (the leading `_` keeps it out of the per-account
+slug namespace).
 
 Rules:
 

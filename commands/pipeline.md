@@ -1,13 +1,12 @@
 ---
-description: "Run the ICP pipeline end to end over one or more accounts (discover -> enrich -> classify -> score -> people)."
+description: "Run the ICP pipeline end to end over one or more accounts (discover -> enrich -> classify -> score -> people -> list)."
 argument-hint: "[company | domain | path to accounts.json]"
 ---
 
 # Pipeline (orchestrator)
 
-Run the account(s) through the ICP pipeline stages in order. Implemented today:
-**discover -> enrich -> classify -> score -> people**; the final `list`
-hand-off stage is being built incrementally.
+Run the account(s) through the ICP pipeline stages in order:
+**discover -> enrich -> classify -> score -> people -> list**.
 
 ## Invocation
 
@@ -28,7 +27,10 @@ hand-off stage is being built incrementally.
 4. For each account that scores A/B, execute the `people` skill (read
    `skills/people/SKILL.md`) to resolve contacts (or persona targets without an
    Apollo key). Reject-tier accounts are skipped.
-5. Report the per-account tier + score + driving evidence + contacts, ranked.
+5. Execute the `list` skill (read `skills/list/SKILL.md`) once over all scored
+   accounts to write the ranked `_report/accounts.csv` + `_report/dossier.md`.
+6. Report the per-account tier + score + driving evidence + contacts, ranked,
+   and point the user at the two hand-off files.
 
 Honor the interaction mode in `skills/_shared/interaction-modes.md`: in
 `interactive` pause to confirm the ICP criteria before classifying; in

@@ -20,7 +20,7 @@ import os
 import re
 from pathlib import Path
 
-STAGES = ["enrich", "classify", "score", "people", "persist", "personalize"]
+STAGES = ["enrich", "classify", "score", "people", "list", "persist", "personalize"]
 
 
 def artifact_root() -> Path:
