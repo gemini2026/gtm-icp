@@ -1,6 +1,6 @@
 # gtm-icp
 
-**GTM-as-code: an ICP qualification pipeline that runs as a Claude plugin — no backend, no markup, grounded on your own corpus.**
+**GTM-as-code: a backend-free Claude plugin that enriches, classifies and scores B2B accounts against an ICP — grounded on your own corpus, bring your own keys.**
 
 > Working name. This is an early scaffold: one end-to-end vertical slice
 > (`enrich → classify → score`) is implemented; the rest of the pipeline is

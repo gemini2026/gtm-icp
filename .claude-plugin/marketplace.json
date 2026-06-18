@@ -11,7 +11,7 @@
     {
       "name": "gtm-icp",
       "source": ".",
-      "description": "GTM-as-code: backend-free ICP pipeline (enrich -> classify -> score) as a Claude plugin, grounded on your own corpus, bring your own keys."
+      "description": "GTM-as-code: a backend-free Claude plugin that enriches, classifies and scores B2B accounts against an ICP — grounded on your own corpus, bring your own keys."
     }
   ]
 }
