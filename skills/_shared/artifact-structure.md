@@ -13,6 +13,7 @@ workers never contend.
     classify.json     # per-criterion ICP verdict       (classify stage)
     score.json        # normalized score + tier         (score, run by classify)
     people.json       # contacts / persona targets      (people stage)
+    personalize.json  # grounded outreach drafts         (personalize stage)
     state.md          # per-account stage status        (see state-tracking.md)
 
 .gtm/_report/             # aggregated hand-off, written by the list stage
