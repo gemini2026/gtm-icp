@@ -5,11 +5,14 @@ Firmographics (enrich.py) tell you size/industry. Signals tell you *intent*:
 a company hiring LangChain engineers is actively closing an AI gap — direct
 evidence for an ICP's commercial-urgency / ai-gap dimensions, not a guess.
 
-This script fetches the homepage, careers/jobs pages, and GitHub repos for an
-account, then scans them for the keyword groups the ICP declares. Each group
-names the scoring `dimension` it informs, so the detected signals flow straight
-into classify's evidence. Absence is evidence too: "checked careers + github,
-found no AI hiring" legitimately widens an incumbent's ai_gap.
+This script fetches the homepage, careers/jobs pages, public ATS job boards
+(Greenhouse / Lever / Ashby), and GitHub repos for an account, then scans them
+for the keyword groups the ICP declares. Each group names the scoring
+`dimension` it informs, so the detected signals flow straight into classify's
+evidence. ATS boards expose structured per-posting text via public JSON APIs —
+far more reliable than scraping a `/careers` HTML page — and are where hiring
+signals like "LangChain" actually live. Absence is evidence too: "checked job
+boards + github, found no AI hiring" legitimately widens an incumbent's ai_gap.
 
 Signal groups come from `icp.criteria.json`:
 
@@ -115,6 +118,93 @@ def github_repos(company: str, domain: str, timeout: float = 8.0) -> dict:
 
 
 # --------------------------------------------------------------------------- #
+# Hiring boards (public ATS JSON APIs — no key, structured per-posting text)
+# --------------------------------------------------------------------------- #
+def http_get_json(url: str, timeout: float = 8.0) -> tuple[object | None, str | None]:
+    """Return (parsed_json, error). Never raises; SSRF-guarded."""
+    if not _is_public_url(url):
+        return None, f"skipped non-public url: {url}"
+    req = Request(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"})
+    try:
+        with urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read(4_000_000).decode("utf-8", errors="replace")), None
+    except (HTTPError, URLError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
+        return None, f"fetch failed {url}: {exc}"
+
+
+def _board_slugs(company: str, domain: str) -> list[str]:
+    """Guess ATS board tokens from the company name and domain (best-effort)."""
+    cands = []
+    if domain:
+        cands.append(domain.split(".")[0])
+    if company:
+        cands.append(re.sub(r"[^a-z0-9]+", "", company.lower()))
+        cands.append(re.sub(r"[^a-z0-9]+", "-", company.lower()).strip("-"))
+    seen, out = set(), []
+    for s in cands:
+        if s and s not in seen:
+            seen.add(s)
+            out.append(s)
+    return out[:3]
+
+
+def _parse_greenhouse(data) -> list[dict]:
+    out = []
+    for j in (data or {}).get("jobs", []) or []:
+        out.append({"title": j.get("title", ""), "url": j.get("absolute_url", ""),
+                    "text": f"{j.get('title','')} {_html_to_text(j.get('content','') or '')}"})
+    return out
+
+
+def _parse_lever(data) -> list[dict]:
+    out = []
+    for j in data or []:
+        if not isinstance(j, dict):
+            continue
+        desc = j.get("descriptionPlain") or _html_to_text(j.get("description", "") or "")
+        out.append({"title": j.get("text", ""), "url": j.get("hostedUrl", ""),
+                    "text": f"{j.get('text','')} {desc}"})
+    return out
+
+
+def _parse_ashby(data) -> list[dict]:
+    out = []
+    for j in (data or {}).get("jobs", []) or []:
+        desc = j.get("descriptionPlain") or _html_to_text(j.get("descriptionHtml") or j.get("description") or "")
+        out.append({"title": j.get("title", ""), "url": j.get("jobUrl") or j.get("applyUrl") or "",
+                    "text": f"{j.get('title','')} {desc}"})
+    return out
+
+
+ATS_BOARDS = [
+    ("greenhouse", "https://boards-api.greenhouse.io/v1/boards/{slug}/jobs?content=true", _parse_greenhouse),
+    ("lever", "https://api.lever.co/v0/postings/{slug}?mode=json", _parse_lever),
+    ("ashby", "https://api.ashbyhq.com/posting-api/job-board/{slug}", _parse_ashby),
+]
+
+
+def hiring_boards(company: str, domain: str, *, fetcher=http_get_json) -> dict:
+    """Find the account's public ATS board and return its job postings.
+
+    Tries Greenhouse/Lever/Ashby by guessed slug. A company uses one ATS, so we
+    stop at the first board that returns postings. A 404 on a wrong slug is
+    expected and silent. Never raises.
+    """
+    slugs = _board_slugs(company, domain)
+    for provider, template, parse in ATS_BOARDS:
+        for slug in slugs:
+            data, err = fetcher(template.format(slug=slug))
+            if err:
+                continue
+            postings = parse(data)
+            if postings:
+                return {"status": "ok", "provider": provider, "board_slug": slug,
+                        "postings": postings[:25]}
+    return {"status": "not_found", "provider": None, "board_slug": None, "postings": [],
+            "note": "no public Greenhouse/Lever/Ashby board matched slugs: " + ", ".join(slugs)}
+
+
+# --------------------------------------------------------------------------- #
 # Keyword scanning
 # --------------------------------------------------------------------------- #
 def scan_text(text: str, keywords: list[str]) -> list[tuple[str, str]]:
@@ -132,11 +222,12 @@ def scan_text(text: str, keywords: list[str]) -> list[tuple[str, str]]:
 
 
 def gather_signals(account: dict, signal_groups: list[dict], *,
-                   fetcher=http_get_text, gh=github_repos) -> dict:
+                   fetcher=http_get_text, gh=github_repos, boards=hiring_boards) -> dict:
     """Fetch public sources for the account and detect ICP signal keywords.
 
-    `fetcher(url) -> (text, error)` and `gh(company, domain) -> {...}` are
-    injectable so this runs fully offline under test.
+    `fetcher(url) -> (text, error)`, `gh(company, domain) -> {...}`, and
+    `boards(company, domain) -> {...}` are injectable so this runs fully offline
+    under test.
     """
     company = account.get("company_name") or account.get("company") or ""
     domain = (account.get("domain") or account.get("website") or "").replace(
@@ -170,6 +261,15 @@ def gather_signals(account: dict, signal_groups: list[dict], *,
         blob = f"{repo.get('name','')} {repo.get('description','')} {repo.get('language','')}"
         source_texts.append((f"github:{repo.get('name') or 'repo'}", blob))
 
+    # 2c. Public ATS job board -> one rich text source per posting.
+    boards_result = boards(company, domain) if (company or domain) else {"status": "skipped", "postings": []}
+    if boards_result.get("note"):
+        warnings.append(boards_result["note"])
+    provider = boards_result.get("provider")
+    for post in boards_result.get("postings", []):
+        title = (post.get("title") or "role")[:50]
+        source_texts.append((f"hiring:{provider}:{title}", post.get("text", "")))
+
     # 3. Scan every source against every signal group.
     detected = []
     for group in signal_groups:
@@ -193,6 +293,13 @@ def gather_signals(account: dict, signal_groups: list[dict], *,
         "domain": domain,
         "sources_checked": [u for u, _ in source_texts],
         "signals_detected": detected,
+        "hiring_boards": {
+            "status": boards_result.get("status"),
+            "provider": provider,
+            "board_slug": boards_result.get("board_slug"),
+            "postings": [{"title": p.get("title"), "url": p.get("url")}
+                         for p in boards_result.get("postings", [])],
+        },
         "github": gh_result,
         "warnings": warnings,
     }
@@ -225,8 +332,11 @@ def main(argv: list[str] | None = None) -> int:
 
     path = gtm_lib.write_json(gtm_lib.stage_path(args.slug, "signals"), out)
     found = [s["key"] for s in out.get("signals_detected", []) if s.get("found")]
+    board = out.get("hiring_boards", {})
     print(json.dumps({"slug": args.slug, "signals_found": found,
                       "sources": len(out.get("sources_checked", [])),
+                      "hiring_board": board.get("provider"),
+                      "postings": len(board.get("postings", [])),
                       "warnings": len(out.get("warnings", [])), "artifact": str(path)}))
     return 0
 

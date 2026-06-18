@@ -27,7 +27,7 @@ for and score accounts with a generic prompt. `gtm-icp` flips both:
 | Stage | Status | What it does |
 |-------|--------|--------------|
 | **`discover`** | **implemented** | Find ICP-fit companies from a brief — Perplexity-grounded, with no-key DuckDuckGo + seed-list fallbacks. |
-| **`enrich`** | **implemented** | Firmographics (Apollo-first, no-key fallback) **+ deep intent signals** scraped from website / careers / GitHub, mapped to ICP scoring dimensions. |
+| **`enrich`** | **implemented** | Firmographics (Apollo-first, no-key fallback) **+ deep intent signals** from website, public ATS job boards (Greenhouse/Lever/Ashby), and GitHub — mapped to ICP scoring dimensions. |
 | **`classify`** | **implemented** | Corpus-grounded ICP verdict — hard gates + graded dimensions → deterministic 0-100 score & A/B/Nurture/Reject tier. |
 | `people` | next | Apollo people search — find the right contacts in each qualified account. |
 | `list` | planned | Ranked CSV + per-account markdown dossier for GTM hand-off. |
@@ -45,8 +45,9 @@ python3 skills/discover/scripts/discover.py --seeds /tmp/seeds.csv
 # 2. Enrich a discovered (or supplied) account (local, no paid key)
 python3 skills/enrich/scripts/enrich.py --slug acme-example --local
 
-# 2b. Collect deep intent signals — scrapes website/careers/GitHub for the ICP's
-#     signal keywords (e.g. hiring LangChain engineers). No key needed.
+# 2b. Collect deep intent signals — scans the website, public ATS job boards
+#     (Greenhouse/Lever/Ashby), and GitHub for the ICP's signal keywords
+#     (e.g. hiring LangChain engineers). No key needed.
 python3 skills/enrich/scripts/signals.py --slug acme-example
 
 # 3. Classify is the LLM step — in Claude, run /gtm-icp:classify acme-robotics

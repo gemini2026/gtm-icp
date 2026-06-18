@@ -51,9 +51,13 @@ you the account conversationally — see `_shared/artifact-structure.md`).
    python3 ${CLAUDE_PLUGIN_ROOT}/skills/enrich/scripts/signals.py --slug <slug>
    ```
 
-   This fetches the homepage, careers/jobs pages, and GitHub repos, then scans
-   them for the keyword groups the ICP declares under `signals` — each group
-   names the scoring `dimension` it informs. It writes `.gtm/<slug>/signals.json`
+   This fetches the homepage, careers pages, **public ATS job boards
+   (Greenhouse / Lever / Ashby)**, and GitHub repos, then scans them for the
+   keyword groups the ICP declares under `signals` — each group names the
+   scoring `dimension` it informs. The ATS boards are public JSON APIs keyed by
+   a guessed company slug; they give structured per-posting text (where hiring
+   signals actually live) and are surfaced in `signals.json` under
+   `hiring_boards` (provider + slug + posting titles/URLs) for the GTM rep. It writes `.gtm/<slug>/signals.json`
    with, per group, the `matched_keywords`, the `evidence` (source URL + snippet),
    and a `found` flag. Example: an ICP `ai_hiring` group (`langchain`, `llm`, …)
    that `informs` `commercial_urgency` will fire on a careers page hiring LangChain
