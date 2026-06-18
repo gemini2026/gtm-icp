@@ -23,11 +23,16 @@ judgment is made against what has actually won, not a bare LLM guess.
 ## Inputs
 
 - `.gtm/<slug>/enrich.json` — the firmographic profile from `enrich`.
+- `.gtm/<slug>/signals.json` — deep intent signals from `enrich`'s signal scan
+  (website / careers / GitHub keyword hits), if present. Each detected signal
+  names the `dimension` it `informs` and carries cited `evidence` — use it.
 - The ICP — read `icp.criteria.json` at the repo root (or the user-supplied
-  path). It has three parts:
+  path). It has four parts:
   - **`gates`** — boolean must-pass conditions. One failure → tier `Reject`.
   - **`dimensions`** — graded conditions, each worth up to `max_points`.
   - **`thresholds`** — `tier_a` / `tier_b` cutoffs on the normalized 0-100 score.
+  - **`signals`** — keyword groups that map public-source signals to dimensions
+    (consumed by `enrich`'s signal scan; you read the *results* in `signals.json`).
 
 ## Workflow
 
@@ -47,6 +52,12 @@ judgment is made against what has actually won, not a bare LLM guess.
    between 0 and `max_points` (carry `max_points` through from the ICP), with one
    line of `evidence`. Partial credit is expected — reserve full points for
    strong, cited evidence. Do not invent firmographics absent from `enrich.json`.
+   **Use `signals.json`:** for each dimension, pull the signal groups whose
+   `informs` matches it. A `found: true` signal is concrete evidence to award
+   points and should be quoted in the `evidence` line (e.g. "careers page hiring
+   LangChain engineers → actively closing AI gap" for `commercial_urgency`). A
+   `found: false` AI-product signal is itself evidence of a wide `ai_gap`. Prefer
+   a cited signal over a firmographic guess.
 4. **Write the verdict** to `.gtm/<slug>/classify.json`:
 
    ```json

@@ -1,6 +1,6 @@
 {
   "name": "Example ICP — incumbent vertical SaaS",
-  "description": "Edit to match your ICP. The model has three parts: (1) hard gates, each a boolean the account MUST pass — one failure rejects it regardless of score; (2) graded scoring dimensions, each worth up to max_points — the classify skill awards partial points with evidence; (3) tier thresholds on the normalized 0-100 score. priority_verticals are a hint for discover/classify, not a gate.",
+  "description": "Edit to match your ICP. The model has four parts: (1) hard gates, each a boolean the account MUST pass — one failure rejects it regardless of score; (2) graded scoring dimensions, each worth up to max_points — the classify skill awards partial points with evidence; (3) tier thresholds on the normalized 0-100 score; (4) signals — keyword groups the enrich stage scans for on the website/careers/GitHub, each mapped via `informs` to the dimension it scores (e.g. hiring LangChain engineers informs commercial_urgency). priority_verticals are a hint for discover/classify, not a gate.",
   "gates": [
     {"key": "established", "description": "Founded before the current AI-native wave — an incumbent with customers, not a brand-new startup."},
     {"key": "product_company", "description": "Sells a product, not primarily services or consulting."},
@@ -20,6 +20,26 @@
     "tier_a": 75,
     "tier_b": 60
   },
+  "signals": [
+    {
+      "key": "ai_hiring",
+      "informs": "commercial_urgency",
+      "keywords": ["langchain", "llamaindex", "llm", "rag", "vector database", "prompt engineering", "mlops", "generative ai", "machine learning engineer"],
+      "interpretation": "Open roles for AI/LLM skills (e.g. hiring LangChain engineers) = the company feels AI pressure and is building in-house. Raises commercial urgency and confirms the AI gap is real but not yet productized."
+    },
+    {
+      "key": "ai_product_surface",
+      "informs": "ai_gap",
+      "keywords": ["ai assistant", "ai copilot", "ai-powered", "gpt", "generative", "ai agent"],
+      "interpretation": "Public AI product language. Thin or marketing-only mentions (no paid SKU, no case study) widen the ai_gap; deep, productized AI narrows it."
+    },
+    {
+      "key": "workflow_data_surface",
+      "informs": "data_workflow_moat",
+      "keywords": ["api", "integration", "workflow", "dispatch", "work order", "inventory", "claims", "inspection", "telematics", "scheduling"],
+      "interpretation": "Operational-workflow and data-integration language signals a proprietary data/workflow moat to ground AI on."
+    }
+  ],
   "priority_verticals": [
     "automotive", "fleet", "telematics", "dealership", "field service",
     "logistics", "warehouse", "construction", "property", "facilities",

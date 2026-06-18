@@ -2,9 +2,9 @@
 
 **GTM-as-code: a backend-free Claude plugin that finds B2B accounts matching your ICP, then enriches, classifies and scores them into a prioritized target list for outreach — grounded on your own corpus, bring your own keys.**
 
-> Working name. This is an early scaffold: one end-to-end vertical slice
-> (`enrich → classify → score`) is implemented; the rest of the pipeline is
-> stubbed.
+> Working name. The front of the pipeline is implemented end to end
+> (`discover → enrich (+ signals) → classify → score`); the hand-off stages
+> (`people`, `list`) are next.
 
 Most ICP/lead-scoring tools are hosted SaaS that mark up data you already pay
 for and score accounts with a generic prompt. `gtm-icp` flips both:
@@ -27,7 +27,7 @@ for and score accounts with a generic prompt. `gtm-icp` flips both:
 | Stage | Status | What it does |
 |-------|--------|--------------|
 | **`discover`** | **implemented** | Find ICP-fit companies from a brief — Perplexity-grounded, with no-key DuckDuckGo + seed-list fallbacks. |
-| **`enrich`** | **implemented** | Firmographic enrichment — Apollo-first, no-key local fallback. |
+| **`enrich`** | **implemented** | Firmographics (Apollo-first, no-key fallback) **+ deep intent signals** scraped from website / careers / GitHub, mapped to ICP scoring dimensions. |
 | **`classify`** | **implemented** | Corpus-grounded ICP verdict — hard gates + graded dimensions → deterministic 0-100 score & A/B/Nurture/Reject tier. |
 | `people` | next | Apollo people search — find the right contacts in each qualified account. |
 | `list` | planned | Ranked CSV + per-account markdown dossier for GTM hand-off. |
@@ -44,6 +44,10 @@ python3 skills/discover/scripts/discover.py --seeds /tmp/seeds.csv
 
 # 2. Enrich a discovered (or supplied) account (local, no paid key)
 python3 skills/enrich/scripts/enrich.py --slug acme-example --local
+
+# 2b. Collect deep intent signals — scrapes website/careers/GitHub for the ICP's
+#     signal keywords (e.g. hiring LangChain engineers). No key needed.
+python3 skills/enrich/scripts/signals.py --slug acme-example
 
 # 3. Classify is the LLM step — in Claude, run /gtm-icp:classify acme-robotics
 #    Claude reads enrich.json + icp.criteria.json, grounds on corpus/, and
@@ -88,7 +92,9 @@ Offline, no network, no keys:
 
 ```bash
 bash skills/enrich/scripts/tests/test_enrich.sh
+bash skills/enrich/scripts/tests/test_signals.sh
 bash skills/classify/scripts/tests/test_score.sh
+bash skills/discover/scripts/tests/test_discover.sh
 ```
 
 ## Design notes

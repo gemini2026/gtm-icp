@@ -20,7 +20,9 @@ being built incrementally.
    companies — each written to `.gtm/<slug>/input.json`. If the input is a
    specific account or accounts file, write the record(s) to `input.json`
    directly and skip discover.
-2. For each account slug, execute the `enrich` skill (read `skills/enrich/SKILL.md`).
+2. For each account slug, execute the `enrich` skill (read `skills/enrich/SKILL.md`)
+   — this includes both firmographic enrichment and the deep intent-signal scan
+   (website / careers / GitHub), writing `enrich.json` and `signals.json`.
 3. Execute the `classify` skill (read `skills/classify/SKILL.md`), which also
    runs the deterministic scorer.
 4. Report the per-account tier + score + driving evidence, ranked.
