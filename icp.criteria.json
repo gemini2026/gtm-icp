@@ -45,5 +45,15 @@
     "logistics", "warehouse", "construction", "property", "facilities",
     "insurance", "claims", "healthcare admin", "manufacturing", "ERP",
     "compliance", "govtech", "permitting", "legal", "accounting"
+  ],
+  "personas": [
+    {"title": "Chief Product Officer", "priority": "primary",
+     "apollo_titles": ["chief product officer", "vp product", "head of product"]},
+    {"title": "CTO / VP Engineering", "priority": "primary",
+     "apollo_titles": ["chief technology officer", "vp engineering", "head of engineering"]},
+    {"title": "Head of Data / AI", "priority": "secondary",
+     "apollo_titles": ["chief data officer", "vp data", "head of data", "head of ai", "head of machine learning"]},
+    {"title": "Head of Strategy / Transformation", "priority": "secondary",
+     "apollo_titles": ["vp strategy", "head of strategy", "chief transformation officer"]}
   ]
 }

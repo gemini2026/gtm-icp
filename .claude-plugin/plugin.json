@@ -18,7 +18,7 @@
     "apollo_api_key": {
       "type": "string",
       "title": "Apollo API key",
-      "description": "Apollo.io API key used by the enrich skill for firmographic + contact enrichment (sync REST). Leave blank to run enrich in --local mode (firmographic-only, no paid vendor).",
+      "description": "Apollo.io API key used by the enrich skill (firmographics) and the people skill (contact search), both sync REST. Leave blank to run local: enrich is firmographic-only and people returns persona targets (the titles to pursue) instead of contacts.",
       "sensitive": true,
       "required": false
     },

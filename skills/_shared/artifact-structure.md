@@ -9,8 +9,10 @@ workers never contend.
 .gtm/<account-slug>/
     input.json        # the raw account record the pipeline started from
     enrich.json       # firmographic profile           (enrich stage)
+    signals.json      # deep intent signals             (enrich stage, signals.py)
     classify.json     # per-criterion ICP verdict       (classify stage)
     score.json        # normalized score + tier         (score, run by classify)
+    people.json       # contacts / persona targets      (people stage)
     state.md          # per-account stage status        (see state-tracking.md)
 ```
 

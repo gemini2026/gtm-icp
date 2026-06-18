@@ -2,9 +2,9 @@
 
 **GTM-as-code: a backend-free Claude plugin that finds B2B accounts matching your ICP, then enriches, classifies and scores them into a prioritized target list for outreach — grounded on your own corpus, bring your own keys.**
 
-> Working name. The front of the pipeline is implemented end to end
-> (`discover → enrich (+ signals) → classify → score`); the hand-off stages
-> (`people`, `list`) are next.
+> Working name. The pipeline runs end to end through contact resolution
+> (`discover → enrich (+ signals) → classify → score → people`); the final
+> GTM hand-off `list` stage is next.
 
 Most ICP/lead-scoring tools are hosted SaaS that mark up data you already pay
 for and score accounts with a generic prompt. `gtm-icp` flips both:
@@ -29,8 +29,8 @@ for and score accounts with a generic prompt. `gtm-icp` flips both:
 | **`discover`** | **implemented** | Find ICP-fit companies from a brief — Perplexity-grounded, with no-key DuckDuckGo + seed-list fallbacks. |
 | **`enrich`** | **implemented** | Firmographics (Apollo-first, no-key fallback) **+ deep intent signals** from website, public ATS job boards (Greenhouse/Lever/Ashby), and GitHub — mapped to ICP scoring dimensions. |
 | **`classify`** | **implemented** | Corpus-grounded ICP verdict — hard gates + graded dimensions → deterministic 0-100 score & A/B/Nurture/Reject tier. |
-| `people` | next | Apollo people search — find the right contacts in each qualified account. |
-| `list` | planned | Ranked CSV + per-account markdown dossier for GTM hand-off. |
+| **`people`** | **implemented** | Apollo people search — map the ICP's buying personas to real contacts per qualified account; no-key persona-target fallback. |
+| `list` | next | Ranked CSV + per-account markdown dossier for GTM hand-off. |
 
 ## Quickstart (no keys)
 
@@ -54,6 +54,10 @@ python3 skills/enrich/scripts/signals.py --slug acme-example
 #    Claude reads enrich.json + icp.criteria.json, grounds on corpus/, and
 #    writes .gtm/acme-robotics/classify.json. Then score it:
 python3 skills/classify/scripts/score.py --slug acme-robotics
+
+# 4. Find contacts in a qualified account (no key -> persona targets; with
+#    APOLLO_API_KEY -> real contacts mapped to the ICP's personas).
+python3 skills/people/scripts/people.py --slug acme-robotics
 ```
 
 Artifacts land in `.gtm/<slug>/` (git-ignored). See
@@ -66,6 +70,7 @@ Installed as a plugin, the stages are slash commands:
 - `/gtm-icp:discover <ICP brief | --seeds path>` — find ICP-fit companies
 - `/gtm-icp:enrich <company | domain | account.json>`
 - `/gtm-icp:classify <slug>`
+- `/gtm-icp:people <slug>` — find contacts in a qualified account
 - `/gtm-icp:pipeline <ICP brief | company | accounts.json>` — runs discover→enrich→classify→score end to end
 
 Configure keys via the plugin's `userConfig` (`apollo_api_key`,
@@ -76,7 +81,7 @@ fall back to the local path.
 
 | Key | Used by | Effect when absent |
 |-----|---------|--------------------|
-| `apollo_api_key` | enrich | Firmographic-only local enrichment. |
+| `apollo_api_key` | enrich, people | Firmographic-only enrichment; people returns persona targets (titles) instead of contacts. |
 | `perplexity_api_key` | discover (planned) | Discovery disabled; supply accounts directly. |
 | `k2_api_host` + `k2_api_key` | classify, personalize | Grounding falls back to local `corpus/` files. |
 
@@ -96,6 +101,7 @@ bash skills/enrich/scripts/tests/test_enrich.sh
 bash skills/enrich/scripts/tests/test_signals.sh
 bash skills/classify/scripts/tests/test_score.sh
 bash skills/discover/scripts/tests/test_discover.sh
+bash skills/people/scripts/tests/test_people.sh
 ```
 
 ## Design notes
