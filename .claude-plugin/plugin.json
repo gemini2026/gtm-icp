@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "GTM-as-code: a backend-free Claude plugin that finds B2B accounts matching your ICP, then enriches, classifies and scores them into a prioritized target list for outreach — grounded on your own corpus, bring your own keys.",
   "author": {
-    "name": "knowledge2-icp"
+    "name": "knowledge2-ai"
   },
   "license": "MIT",
   "keywords": [
@@ -32,15 +32,22 @@
     "k2_api_host": {
       "type": "string",
       "title": "K2 API host",
-      "description": "Base URL of a Knowledge2 corpus API (e.g. https://api.knowledge2.ai). When set, classify/personalize ground their reasoning on your private corpus via the bundled stdio MCP shim. Leave blank to ground on local corpus files instead.",
+      "description": "Base URL of a Knowledge2 corpus API (e.g. https://api.knowledge2.ai). When set with k2_api_key and k2_corpus_id, classify/personalize ground their reasoning on your private corpus via the bundled k2_query.py retrieval client (POST /v1/corpora/{id}/search:batch). Leave blank to ground on local corpus files instead.",
       "sensitive": false,
       "required": false
     },
     "k2_api_key": {
       "type": "string",
       "title": "K2 API key",
-      "description": "K2 API key sent to the K2 API host as `x-api-key`. Required when k2_api_host is set.",
+      "description": "K2 API key sent to the K2 API host as `X-API-Key`. Required when k2_api_host is set.",
       "sensitive": true,
+      "required": false
+    },
+    "k2_corpus_id": {
+      "type": "string",
+      "title": "K2 corpus ID",
+      "description": "ID of the K2 corpus to retrieve grounding from. Required when k2_api_host is set; without it, grounding falls back to local corpus files.",
+      "sensitive": false,
       "required": false
     }
   }

@@ -127,10 +127,45 @@ def http_get_text(url: str, timeout: float = 8.0) -> tuple[str | None, list[dict
     return _html_to_text(raw), _extract_ats_refs(raw), None
 
 
+def _norm(s: str) -> str:
+    """Lowercase, alphanumeric-only — for owner/company token comparison."""
+    return re.sub(r"[^a-z0-9]", "", (s or "").lower())
+
+
+def _filter_repos(items: list, company: str, domain: str) -> list:
+    """Keep only repos that plausibly belong to *this* account.
+
+    A bare `"<company>" OR "<domain>"` GitHub search is noisy: any repo that
+    merely mentions the name in its description matches. We tighten to repos
+    that are actually owned by the company — normalized `owner.login` equals or
+    contains the company/domain token (or vice-versa) — or whose `homepage`
+    points at the domain. Forks are dropped (they mirror someone else's code),
+    and the survivors are ranked by stars.
+    """
+    domain_root = domain.split(".")[0] if domain else ""
+    targets = [t for t in (_norm(company), _norm(domain_root)) if len(t) >= 3]
+    kept = []
+    for it in items:
+        if it.get("fork"):
+            continue
+        owner = _norm((it.get("owner") or {}).get("login", ""))
+        homepage = (it.get("homepage") or "").lower()
+        owner_match = any(
+            owner and (owner == t or t in owner or owner in t) for t in targets
+        )
+        home_match = bool(domain) and domain.lower() in homepage
+        if owner_match or home_match:
+            kept.append(it)
+    kept.sort(key=lambda it: it.get("stargazers_count") or 0, reverse=True)
+    return kept
+
+
 def github_repos(company: str, domain: str, timeout: float = 8.0) -> dict:
     """Best-effort GitHub repo metadata for the account. Never raises."""
     query = quote_plus(f'"{company}" OR "{domain}"')
-    url = f"{GITHUB_SEARCH}?q={query}&per_page=5&sort=updated"
+    # Pull a wider candidate set, then filter to repos actually owned by the
+    # account (see _filter_repos) and keep the top 5 by stars.
+    url = f"{GITHUB_SEARCH}?q={query}&per_page=30&sort=stars"
     headers = {"Accept": "application/vnd.github+json", "User-Agent": USER_AGENT}
     token = os.environ.get("GITHUB_TOKEN")
     if token:
@@ -140,11 +175,12 @@ def github_repos(company: str, domain: str, timeout: float = 8.0) -> dict:
             payload = json.loads(resp.read(1_000_000).decode("utf-8", errors="replace"))
     except (HTTPError, URLError, TimeoutError, json.JSONDecodeError, ValueError) as exc:
         return {"status": "warning", "warning": f"github search failed: {exc}", "repositories": []}
+    matched = _filter_repos(payload.get("items") or [], company, domain)
     repos = [{
         "name": it.get("full_name"), "url": it.get("html_url"),
         "description": it.get("description") or "", "language": it.get("language") or "",
         "stars": it.get("stargazers_count") or 0, "updated_at": it.get("updated_at"),
-    } for it in (payload.get("items") or [])[:5]]
+    } for it in matched[:5]]
     return {"status": "ok", "repositories": repos}
 
 

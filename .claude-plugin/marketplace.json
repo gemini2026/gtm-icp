@@ -1,7 +1,7 @@
 {
   "name": "gtm-icp-marketplace",
   "owner": {
-    "name": "knowledge2-icp"
+    "name": "knowledge2-ai"
   },
   "metadata": {
     "description": "Marketplace for the gtm-icp plugin — a backend-free ICP qualification pipeline for Claude Code.",

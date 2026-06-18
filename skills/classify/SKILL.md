@@ -37,11 +37,22 @@ judgment is made against what has actually won, not a bare LLM guess.
 ## Workflow
 
 1. **Ground the judgment.** Retrieve relevant context for this account:
-   - If `k2_api_host` / `k2_api_key` are configured, query the corpus via the
-     bundled K2 stdio MCP shim for won-deal patterns, positioning, and
-     case-study evidence matching the account's vertical/size.
-   - Otherwise, read local corpus files under `corpus/` (markdown notes on past
-     wins, ICP rationale). Local grounding is the no-key path.
+   - If `k2_api_host` / `k2_api_key` / `k2_corpus_id` are configured, pull
+     won-deal patterns, positioning, and case-study evidence from your corpus
+     with the bundled retrieval client (real `POST …/search:batch`, no MCP
+     server needed):
+
+     ```bash
+     python3 ${CLAUDE_PLUGIN_ROOT}/skills/classify/scripts/k2_query.py --slug <slug> --write
+     ```
+
+     It writes `.gtm/<slug>/grounding.json` — `status: "ok"` with ranked
+     `snippets` (each `text` + `score` + `metadata`) you may cite. Cite only
+     what the snippets actually say.
+   - If K2 is not configured, or the call returns `status: "skipped"`/
+     `"warning"`, the same file carries `local_fallback`: the local corpus
+     files under `corpus/` (markdown notes on past wins, ICP rationale). Read
+     those instead — local grounding is the no-key path.
    - **You are the agent here** — there is no model call to orchestrate. Reason
      over the enrichment + the grounded evidence directly.
 2. **Evaluate the gates.** For each gate, decide `passed: true|false` and write
@@ -100,4 +111,6 @@ A bare LLM can guess ICP fit from firmographics. The defensible version cites
 wrapper and a tool that encodes what your team has learned. Lead with the
 evidence, not the score.
 
-Offline scorer test: `bash scripts/tests/test_score.sh`.
+Offline tests: `bash scripts/tests/test_score.sh` (the scorer) and
+`bash scripts/tests/test_k2_query.sh` (the K2 retrieval client — runs with an
+injected fetcher, no key, no network).

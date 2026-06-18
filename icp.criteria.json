@@ -1,6 +1,7 @@
 {
-  "name": "Example ICP — incumbent vertical SaaS",
-  "description": "Edit to match your ICP. The model has four parts: (1) hard gates, each a boolean the account MUST pass — one failure rejects it regardless of score; (2) graded scoring dimensions, each worth up to max_points — the classify skill awards partial points with evidence; (3) tier thresholds on the normalized 0-100 score; (4) signals — keyword groups the enrich stage scans for on the website/careers/GitHub, each mapped via `informs` to the dimension it scores (e.g. hiring LangChain engineers informs commercial_urgency). priority_verticals are a hint for discover/classify, not a gate.",
+  "name": "Knowledge2 ICP",
+  "bottom_line": "Pre-2025 incumbent software companies with proprietary workflow/data assets, enough customers to feel competitive pressure, and either no public AI narrative or a shallow AI feature that does not yet change the customer's core workflow.",
+  "description": "This is the Knowledge2 ICP, shipped as the default — edit it to match your own ICP. The model has four parts: (1) hard gates, each a boolean the account MUST pass — one failure rejects it regardless of score; (2) graded scoring dimensions, each worth up to max_points — the classify skill awards partial points with evidence; (3) tier thresholds on the normalized 0-100 score; (4) signals — keyword groups the enrich stage scans for on the website/careers/GitHub, each mapped via `informs` to the dimension it scores (e.g. hiring LangChain engineers informs commercial_urgency). priority_verticals are a hint for discover/classify, not a gate.",
   "gates": [
     {"key": "established", "description": "Founded before the current AI-native wave — an incumbent with customers, not a brand-new startup."},
     {"key": "product_company", "description": "Sells a product, not primarily services or consulting."},
@@ -41,10 +42,21 @@
     }
   ],
   "priority_verticals": [
-    "automotive", "fleet", "telematics", "dealership", "field service",
-    "logistics", "warehouse", "construction", "property", "facilities",
-    "insurance", "claims", "healthcare admin", "manufacturing", "ERP",
-    "compliance", "govtech", "permitting", "legal", "accounting"
+    "automotive", "dealer", "dealership", "fleet", "telematics",
+    "field service", "maintenance", "logistics", "warehouse", "construction",
+    "property", "facilities", "insurance", "claims", "healthcare admin",
+    "manufacturing", "ERP", "compliance", "govtech", "permitting",
+    "legal", "accounting", "TMS", "WMS", "CMMS", "RCM"
+  ],
+  "ai_traction_checks": [
+    "missing AI-specific product docs",
+    "no paid AI SKU or add-on",
+    "no AI case studies or named-customer adoption proof",
+    "thin AI release cadence",
+    "few/no AI mentions in third-party reviews",
+    "AI features lack action-capable workflow depth",
+    "weak data grounding behind any AI feature",
+    "no AI governance/controls story"
   ],
   "personas": [
     {"title": "Chief Product Officer", "priority": "primary",

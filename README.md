@@ -86,8 +86,8 @@ Installed as a plugin, the stages are slash commands:
 - `/gtm-icp:pipeline <ICP brief | company | accounts.json>` — runs discover→enrich→classify→score→people→list→personalize end to end
 
 Configure keys via the plugin's `userConfig` (`apollo_api_key`,
-`perplexity_api_key`, `k2_api_host` / `k2_api_key`) — all optional; absent keys
-fall back to the local path.
+`perplexity_api_key`, `k2_api_host` / `k2_api_key` / `k2_corpus_id`) — all
+optional; absent keys fall back to the local path.
 
 ## Configuration
 
@@ -95,7 +95,7 @@ fall back to the local path.
 |-----|---------|--------------------|
 | `apollo_api_key` | enrich, people | Firmographic-only enrichment; people returns persona targets (titles) instead of contacts. |
 | `perplexity_api_key` | discover (planned) | Discovery disabled; supply accounts directly. |
-| `k2_api_host` + `k2_api_key` | classify, personalize | Grounding falls back to local `corpus/` files. |
+| `k2_api_host` + `k2_api_key` + `k2_corpus_id` | classify, personalize | Grounding (via `skills/classify/scripts/k2_query.py` → `POST …/search:batch`) falls back to local `corpus/` files. |
 
 The ICP model has three parts (see `icp.criteria.json`): **hard gates** (any
 failure → `Reject`), **graded scoring dimensions** (partial points up to
@@ -112,6 +112,7 @@ Offline, no network, no keys:
 bash skills/enrich/scripts/tests/test_enrich.sh
 bash skills/enrich/scripts/tests/test_signals.sh
 bash skills/classify/scripts/tests/test_score.sh
+bash skills/classify/scripts/tests/test_k2_query.sh
 bash skills/discover/scripts/tests/test_discover.sh
 bash skills/people/scripts/tests/test_people.sh
 bash skills/list/scripts/tests/test_list.sh

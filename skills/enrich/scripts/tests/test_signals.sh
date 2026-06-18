@@ -73,6 +73,26 @@ assert {"provider": "greenhouse", "slug": "acmeco"} in refs, refs
 assert {"provider": "lever", "slug": "acme-eng"} in refs, refs
 assert all(r["slug"] not in signals._ATS_SLUG_STOP for r in refs), refs
 
+# _filter_repos keeps only repos owned by the account, drops forks + name-mentions,
+# and ranks survivors by stars.
+RAW = [
+    {"full_name": "incumbent/dispatch", "owner": {"login": "incumbent"},
+     "fork": False, "homepage": "", "stargazers_count": 12},
+    {"full_name": "randos/awesome-incumbent-list", "owner": {"login": "randos"},
+     "fork": False, "homepage": "", "stargazers_count": 9000},   # name-mention, wrong owner
+    {"full_name": "someone/incumbent-fork", "owner": {"login": "incumbent"},
+     "fork": True, "homepage": "", "stargazers_count": 50},        # fork of our org -> drop
+    {"full_name": "contrib/plugin", "owner": {"login": "contrib"},
+     "fork": False, "homepage": "https://incumbent.example/docs", "stargazers_count": 4},
+]
+kept = signals._filter_repos(RAW, "Incumbent", "incumbent.example")
+names = [r["full_name"] for r in kept]
+assert "incumbent/dispatch" in names, names           # owner match
+assert "contrib/plugin" in names, names                # homepage match
+assert "randos/awesome-incumbent-list" not in names, names  # noisy name-mention dropped
+assert "someone/incumbent-fork" not in names, names    # fork dropped
+assert names[0] == "incumbent/dispatch", names         # ranked by stars (12 > 4)
+
 # ai_product_surface keywords are absent -> found is False (absence is evidence).
 assert by["ai_product_surface"]["found"] is False, "ai_product_surface should not fire"
 
