@@ -31,7 +31,8 @@ markdown table for per-stage status.
 | enrich      | completed   | enrich.json   |
 | classify    | in_progress | —             |
 | score       | pending     | —             |
-| persist     | pending     | —             |
+| people      | pending     | —             |
+| list        | pending     | —             |
 | personalize | pending     | —             |
 
 ## Decisions Log
