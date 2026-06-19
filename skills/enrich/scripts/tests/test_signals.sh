@@ -101,7 +101,37 @@ wf = by["workflow_data_surface"]
 assert wf["found"] and wf["informs"] == "data_workflow_moat"
 assert any(e["source"].startswith("github:") for e in wf["evidence"]), "github repo should be scanned"
 
-print("OK: ai_hiring->commercial_urgency, absence handled, github scanned")
+# --- Recency: publish dates flow from sources onto evidence (for personalize). ---
+# Date parsers normalize each ATS provider's native field (+ epoch ms / RFC 2822).
+assert signals._parse_greenhouse({"jobs": [{"title": "ML Eng", "updated_at": "2026-05-01T10:00:00-04:00",
+    "content": "LangChain"}]})[0]["published_at"] == "2026-05-01", "greenhouse updated_at"
+assert signals._parse_lever([{"text": "ML Eng", "createdAt": 1777593600000,
+    "descriptionPlain": "LangChain"}])[0]["published_at"] == "2026-05-01", "lever epoch ms"
+assert signals._parse_ashby({"jobs": [{"title": "ML Eng", "publishedDate": "2026-05-01",
+    "descriptionPlain": "LangChain"}]})[0]["published_at"] == "2026-05-01", "ashby publishedDate"
+assert signals._to_iso_date("Thu, 01 May 2026 10:00:00 GMT") == "2026-05-01", "RFC 2822 Last-Modified"
+assert signals._to_iso_date(None) is None and signals._to_iso_date("") is None, "undated stays neutral"
+
+# A dated page (meta tag) + a 4-tuple fetcher -> evidence carries published_at;
+# the older 3-tuple fetcher path stays valid (no date).
+DATED = {"https://fresh.example": '<html><head>'
+         '<meta property="article:published_time" content="2026-06-01">'
+         '</head><body>We ship dispatch workflow software with an open API.</body></html>'}
+def dated_fetch(url):
+    html = DATED.get(url)
+    if not html:
+        return (None, [], None, f"fetch failed {url}")
+    return (signals._html_to_text(html), signals._extract_ats_refs(html),
+            signals._html_published_date(html), None)
+no_boards = lambda c, d, *, discovered=None: {"status": "not_found", "provider": None, "postings": []}
+no_gh = lambda c, d: {"status": "skipped", "repositories": []}
+dout = signals.gather_signals({"company_name": "Fresh", "domain": "fresh.example"},
+    [{"key": "workflow_data_surface", "informs": "data_workflow_moat", "keywords": ["dispatch", "api"]}],
+    fetcher=dated_fetch, gh=no_gh, boards=no_boards)
+dated_ev = dout["signals_detected"][0]["evidence"]
+assert dated_ev and all(e.get("published_at") == "2026-06-01" for e in dated_ev), dated_ev
+
+print("OK: ai_hiring->commercial_urgency, absence handled, github scanned, recency dates captured")
 PY
 
 echo "PASS test_signals.sh"

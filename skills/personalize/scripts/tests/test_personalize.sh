@@ -67,7 +67,37 @@ out4 = pz.gather_personalize(score, signals, people, enrich, cfg)
 assert "Custom angle here." in out4["drafts"][0]["body"], out4["drafts"][0]["body"]
 assert out4["drafts"][0]["cta"] == "Grab 15 min?", out4["drafts"][0]
 
-print("OK: grounded draft w/ contact, persona-role fallback, no-signal warning, ICP override")
+# --- 5. Recency: a fresh signal outranks a stale one, even both keyworded. ---
+import datetime
+ref = datetime.date(2026, 6, 13)
+sig_dated = {"signals_detected": [
+    {"key": "ai_hiring", "informs": "commercial_urgency", "found": True,
+     "matched_keywords": ["langchain"],
+     "evidence": [{"snippet": "stale 2023 hiring blurb", "published_at": "2023-01-01"}]},
+    {"key": "ai_product_surface", "informs": "ai_gap", "found": True,
+     "matched_keywords": ["gpt"],
+     "evidence": [{"snippet": "fresh 2026 ai launch", "published_at": "2026-06-01"}]}]}
+exec_person = {"people": [{"name": "Dana Lee", "title": "CEO", "persona": "CEO",
+    "persona_priority": "primary", "email": "d@acme.example", "email_status": "verified"}],
+    "persona_targets": []}
+out5 = pz.gather_personalize(score, sig_dated, exec_person, enrich, reference_date=ref)
+d5 = out5["drafts"][0]
+# Declared second but freshest -> recency reorders it to the front.
+assert d5["grounded_on"][0]["signal"] == "ai_product_surface", d5["grounded_on"]
+assert d5["grounded_on"][0]["published_at"] == "2026-06-01", d5["grounded_on"][0]
+# CEO persona -> exec scaffold.
+assert d5["template"] == "exec-ai-urgency", d5["template"]
+assert "AI edge" in d5["subject"], d5["subject"]
+
+# --- 6. Persona routing: an engineering target gets the workflow scaffold. ---
+eng_person = {"people": [], "persona_targets": [{"title": "VP Engineering", "priority": "primary"}]}
+out6 = pz.gather_personalize(score, sig_dated, eng_person, enrich, reference_date=ref)
+d6 = out6["drafts"][0]
+assert d6["template"] == "workflow-efficiency", d6["template"]
+assert "workflows" in d6["subject"], d6["subject"]
+
+print("OK: grounded draft w/ contact, persona-role fallback, no-signal warning, "
+      "ICP override, recency reorder, persona routing")
 PY
 
 echo "PASS test_personalize.sh"

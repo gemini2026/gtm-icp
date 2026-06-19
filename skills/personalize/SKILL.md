@@ -44,14 +44,20 @@ Per account dir under the artifact root:
 
    This writes `.gtm/<slug>/personalize.json` — one draft per contact (or per
    persona target when no contacts were resolved), each with a `subject`,
-   `body`, `cta`, and a `grounded_on` list: the exact signals the body is
-   allowed to cite. Drafts start with `status: "template"`.
+   `body`, `cta`, a `template` name (the persona/signal-routed scaffold used),
+   and a `grounded_on` list: the exact signals the body is allowed to cite,
+   ordered **freshest first** (a recent signal outranks a stale one; undated
+   signals stay neutral, so a strong older signal isn't dropped). Drafts start
+   with `status: "template"`.
 3. **Elevate the copy.** For each draft, rewrite the `body` so it reads like a
    real person wrote it — specific, short, no filler — **grounded only on that
-   draft's `grounded_on` evidence**. Do not invent facts, numbers, or signals
-   that aren't in `grounded_on`; if the grounding is thin (a `no public signals`
-   warning), say less rather than fabricate. Keep the subject tight. Set
-   `status: "llm"` on the drafts you rewrite, and write the updated
+   draft's `grounded_on` evidence**. Lead on the **most recent** signal
+   (`grounded_on` is already recency-ordered, and items carry a `published_at`
+   when known) — do not anchor on something that reads as stale or years-old.
+   Do not invent facts, numbers, or signals that aren't in `grounded_on`; if the
+   grounding is thin (a `no public signals` warning), say less rather than
+   fabricate. Follow the selected `template`'s framing, keep the subject tight,
+   set `status: "llm"` on the drafts you rewrite, and write the updated
    `personalize.json` back.
 4. Surface the drafts to the user for review. **Do not send anything** — outreach
    is sent by the user through their own tool; this stage only drafts.
@@ -66,8 +72,10 @@ Per account dir under the artifact root:
   "drafts": [
     {"recipient": "Dana Lee", "to": "dana@acme.example", "to_status": "verified",
      "title": "VP Product", "persona": "Chief Product Officer",
-     "channel": "email", "subject": "...", "body": "...", "cta": "...",
-     "grounded_on": [{"signal": "ai_hiring", "snippet": "...hiring for LangChain..."}],
+     "channel": "email", "template": "exec-ai-urgency",
+     "subject": "...", "body": "...", "cta": "...",
+     "grounded_on": [{"signal": "ai_hiring", "snippet": "...hiring for LangChain...",
+                      "published_at": "2026-05-01"}],
      "status": "template"}
   ],
   "warnings": []
