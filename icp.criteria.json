@@ -25,18 +25,21 @@
     {
       "key": "ai_hiring",
       "informs": "commercial_urgency",
+      "points": 35,
       "keywords": ["langchain", "llamaindex", "llm", "rag", "vector database", "prompt engineering", "mlops", "generative ai", "machine learning engineer"],
       "interpretation": "Open roles for AI/LLM skills (e.g. hiring LangChain engineers) = the company feels AI pressure and is building in-house. Raises commercial urgency and confirms the AI gap is real but not yet productized."
     },
     {
       "key": "ai_product_surface",
       "informs": "ai_gap",
+      "points": 25,
       "keywords": ["ai assistant", "ai copilot", "ai-powered", "gpt", "generative", "ai agent"],
       "interpretation": "Public AI product language. Thin or marketing-only mentions (no paid SKU, no case study) widen the ai_gap; deep, productized AI narrows it."
     },
     {
       "key": "workflow_data_surface",
       "informs": "data_workflow_moat",
+      "points": 20,
       "keywords": ["api", "integration", "workflow", "dispatch", "work order", "inventory", "claims", "inspection", "telematics", "scheduling"],
       "interpretation": "Operational-workflow and data-integration language signals a proprietary data/workflow moat to ground AI on."
     }
