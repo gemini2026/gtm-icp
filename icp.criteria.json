@@ -55,6 +55,22 @@
       "interpretation": "Operational-workflow and data-integration language signals a proprietary data/workflow moat to ground AI on."
     }
   ],
+  "positioning": {
+    "description": "Seller context for the personalize stage. value_pillars are what we actually win on (lead the rewrite on one, backed by proof); do_not_say are forbidden claims — overpromises, competitor bashing, unverifiable numbers — every draft is checked against them before sending.",
+    "value_pillars": [
+      {"name": "You already own the data", "proof": "The workflow/transaction data the AI needs is yours — no buying, no cold start."},
+      {"name": "Grounded, not generative guesswork", "proof": "Answers cite your records; we right-size retrieval to your corpus instead of hand-waving an LLM."},
+      {"name": "First AI feature in weeks, not a platform rebuild", "proof": "We map one high-value surface and ship against your real product, not a slideware roadmap."}
+    ],
+    "do_not_say": [
+      "guaranteed ROI",
+      "10x",
+      "revolutionary",
+      "fully autonomous",
+      "rip and replace",
+      "we beat <competitor>"
+    ]
+  },
   "priority_verticals": [
     "automotive", "dealer", "dealership", "fleet", "telematics",
     "field service", "maintenance", "logistics", "warehouse", "construction",
